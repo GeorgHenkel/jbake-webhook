@@ -2,6 +2,9 @@ package de.georghenkel.webhooklistener
 
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import spark.Request
+import spark.Response
+import spark.Route
 import spark.kotlin.*
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -41,8 +44,13 @@ fun main(args: Array<String>) {
         LOG.error("Target dir $targetDir does not exist or is not writable")
     }
 
-    ignite().port(8080).post("/webhook") {
+    ignite().port(8080)
+
+    post("/webhook", "application/json", {
+        val body = request.body()
+        LOG.info(body)
+
         "git pull".runCommand(workingDir)
         "jbake -b . $target".runCommand(workingDir)
-    }
+    })
 }
