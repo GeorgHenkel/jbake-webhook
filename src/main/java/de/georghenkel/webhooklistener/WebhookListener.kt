@@ -2,21 +2,26 @@ package de.georghenkel.webhooklistener
 
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import spark.Request
-import spark.Response
-import spark.Route
 import spark.kotlin.*
+import java.io.BufferedReader
 import java.io.File
-import java.util.concurrent.TimeUnit
+import java.io.InputStreamReader
 
-fun String.runCommand(workingDir: File) {
+fun String.runCommand(workingDir: File, logger: Logger) {
     val parts = this.split("\\s".toRegex())
-    ProcessBuilder(*parts.toTypedArray())
+    val process = ProcessBuilder(*parts.toTypedArray())
             .directory(workingDir)
-            .redirectOutput(ProcessBuilder.Redirect.INHERIT)
-            .redirectError(ProcessBuilder.Redirect.INHERIT)
             .start()
-            .waitFor(60, TimeUnit.MINUTES)
+
+    Thread({
+        BufferedReader(InputStreamReader(process.inputStream)).lines().forEach { l -> logger.info(l) }
+    }).start()
+
+    Thread({
+        BufferedReader(InputStreamReader(process.errorStream)).lines().forEach { l -> logger.error(l) }
+    }).start()
+
+    process.waitFor()
 }
 
 fun main(args: Array<String>) {
@@ -47,10 +52,7 @@ fun main(args: Array<String>) {
     ignite().port(8080)
 
     post("/webhook", "application/json", {
-        val body = request.body()
-        LOG.info(body)
-
-        "git pull".runCommand(workingDir)
-        "jbake -b . $target".runCommand(workingDir)
+        "git pull".runCommand(workingDir, LOG)
+        "jbake -b . $target".runCommand(workingDir, LOG)
     })
 }
