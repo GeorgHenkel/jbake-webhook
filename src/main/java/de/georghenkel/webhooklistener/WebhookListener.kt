@@ -56,6 +56,6 @@ fun main(args: Array<String>) {
             "jbake -b . $target".runCommand(workingDir, LOG)
         }
 
-        return "SUCCESS";
+        return "SUCCESS"
     })
 }
