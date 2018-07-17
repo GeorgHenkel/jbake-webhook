@@ -51,7 +51,11 @@ fun main(args: Array<String>) {
     ignite().port(8080)
 
     post("/webhook", "application/json", {
-        "git pull".runCommand(workingDir, LOG)
-        "jbake -b . $target".runCommand(workingDir, LOG)
+        thread(start = true) {
+            "git pull".runCommand(workingDir, LOG)
+            "jbake -b . $target".runCommand(workingDir, LOG)
+        }
+
+        return "SUCCESS";
     })
 }
