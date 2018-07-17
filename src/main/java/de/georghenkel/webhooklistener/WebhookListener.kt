@@ -48,8 +48,7 @@ fun main(args: Array<String>) {
         LOG.error("Target dir $targetDir does not exist or is not writable")
     }
 
-    ignite().port(8080)
-
+    port(8080)
     post("/webhook", "application/json", {
         "git pull".runCommand(workingDir, LOG)
         "jbake -b . $target".runCommand(workingDir, LOG)
