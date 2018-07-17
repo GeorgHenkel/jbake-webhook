@@ -13,11 +13,11 @@ fun String.runCommand(workingDir: File, logger: Logger) {
             .start()
 
     thread(start = true) {
-        process.inputStream.bufferedReader().useLines {  it.forEach { logger.info(it) } }
+        process.inputStream.bufferedReader().useLines { it.forEach { logger.info(it) } }
     }
 
     thread(start = true) {
-        process.errorStream.bufferedReader().useLines {  it.forEach { logger.info(it) } }
+        process.errorStream.bufferedReader().useLines { it.forEach { logger.info(it) } }
     }
 
     process.waitFor()
@@ -51,10 +51,8 @@ fun main(args: Array<String>) {
     ignite().port(8080)
 
     post("/webhook", "application/json", {
-        thread(start = true) {
-            "git pull".runCommand(workingDir, LOG)
-            "jbake -b . $target".runCommand(workingDir, LOG)
-        }
+        "git pull".runCommand(workingDir, LOG)
+        "jbake -b . $target".runCommand(workingDir, LOG)
 
         "SUCCESS"
     })
