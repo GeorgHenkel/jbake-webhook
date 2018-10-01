@@ -14,25 +14,32 @@ RUN  \
   apt-get update && \
   apt-get -y upgrade && \
   apt-get install -y wget unzip git
-  
-# install jbake 
-RUN wget https://dl.bintray.com/jbake/binary/jbake-2.6.1-bin.zip && \
+
+# install jbake
+RUN \
+  wget https://dl.bintray.com/jbake/binary/jbake-2.6.1-bin.zip && \
   unzip jbake-2.6.1-bin.zip
-  
+
 # set environment variables
-ENV PROJECT_NAME="test"
 ENV PATH=$PATH:/jbake-2.6.1-bin/bin/
- 
-# clone project  
-RUN git clone ${PROJECT_NAME}
 
-# prepare build directory and mount volume
-RUN mkdir /var/www/html/${PROJECT_NAME}
-VOLUME /var/www/html/${PROJECT_NAME}
+# create directories
+RUN \
+  mkdir -p /var/www/html/desire-to-travel && \
+  chown -R www-data:www-data /var/www/html/desire-to-travel && \
+  mkdir desire-to-travel && \
+  chown -R www-data:www-data desire-to-travel
 
-# add webhook listener
+# change user
+USER www-data
+
+# clone git repository
+RUN git clone https://github.com/GeorgHenkel/desire-to-travel.git
+
+# prepare image
 ADD dist/webhook-listener.jar webhook-listener.jar
+VOLUME /var/www/html/desire-to-travel
 EXPOSE 8080
 
 # run webhook-listener
-CMD java -jar -Dworkingdir=${PROJECT_NAME} -Dtarget=/var/www/html/${PROJECT_NAME} webhook-listener.jar
+CMD java -jar -Dworkingdir=desire-to-travel -Dtarget=/var/www/html/desire-to-travel webhook-listener.jar
