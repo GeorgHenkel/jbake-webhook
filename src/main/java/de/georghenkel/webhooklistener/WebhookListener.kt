@@ -1,13 +1,17 @@
 package de.georghenkel.webhooklistener
 
+import io.javalin.Javalin
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import spark.kotlin.*
 import java.io.File
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.concurrent.Executors
 import kotlin.concurrent.thread
 
 fun String.runCommand(workingDir: File, logger: Logger) {
     val parts = this.split("\\s".toRegex())
+    logger.info("Workingdir: " + workingDir + ", Parts: " + parts.joinToString())
     val process = ProcessBuilder(*parts.toTypedArray())
             .directory(workingDir)
             .start()
@@ -24,35 +28,50 @@ fun String.runCommand(workingDir: File, logger: Logger) {
 }
 
 fun main(args: Array<String>) {
-    val LOG: Logger = LoggerFactory.getLogger("WebhookListener")
+    val log: Logger = LoggerFactory.getLogger("WebhookListener")
 
     val workingDirectory = System.getProperty("workingdir")
     if (workingDirectory == null) {
-        LOG.error("Please specify -Dworkingdir")
+        log.error("Please specify -Dworkingdir")
         return
     }
 
     val target = System.getProperty("target")
     if (target == null) {
-        LOG.error("Please specify -Dtarget")
+        log.error("Please specify -Dtarget")
         return
     }
 
     val workingDir = File(workingDirectory)
     if (!workingDir.exists() || !workingDir.isDirectory || !workingDir.canWrite()) {
-        LOG.error("Working dir $workingDirectory does not exist or is not writable")
+        log.error("Working dir $workingDirectory does not exist or is not writable")
     }
 
     val targetDir = File(target)
     if (!targetDir.exists() || !targetDir.isDirectory || !targetDir.canWrite()) {
-        LOG.error("Target dir $targetDir does not exist or is not writable")
+        log.error("Target dir $targetDir does not exist or is not writable")
     }
 
-    port(8080)
-    post("/webhook", "application/json", {
-        "git pull".runCommand(workingDir, LOG)
-        "jbake -b . $target".runCommand(workingDir, LOG)
+    val app = Javalin
+            .create()
+            .defaultContentType("text/plain")
+            .start(8080)
 
-        "SUCCESS"
+    app.get("/alive") { ctx ->
+        val dateTime = LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME)
+
+        ctx.result(dateTime)
+    }
+
+    app.post("/webhook") { ctx ->
+        runCommands(workingDir, target, log)
+        ctx.result("SUCCESS")
+    }
+}
+
+private fun runCommands(workingDir: File, target: String, log: Logger) {
+    Executors.newSingleThreadExecutor().execute({
+        "git pull".runCommand(workingDir, log)
+        "jbake -b . $target".runCommand(workingDir, log)
     })
 }
