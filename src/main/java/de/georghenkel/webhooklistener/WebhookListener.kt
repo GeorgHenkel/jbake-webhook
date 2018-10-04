@@ -71,7 +71,7 @@ fun main(args: Array<String>) {
 
 private fun runCommands(workingDir: File, target: String, log: Logger) {
     Executors.newSingleThreadExecutor().execute({
-        "git pull".runCommand(workingDir, log)
+        "git pull origin master".runCommand(workingDir, log)
         "jbake -b . $target".runCommand(workingDir, log)
     })
 }
